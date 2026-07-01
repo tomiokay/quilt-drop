@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "terminalx-hub": {
+      "args": [
+        "/Applications/Terminal X.app/Contents/Resources/hub-mcp.cjs",
+        "/Users/athanwang/Desktop/Vibe Code Projects/quilt-drop"
+      ],
+      "command": "node",
+      "env": {}
+    }
+  }
+}

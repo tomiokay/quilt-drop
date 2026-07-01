@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F5EFE6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="QuiltDrop">
+<title>Quilt Drop</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23F5EFE6'/%3E%3Crect x='20' y='20' width='60' height='60' rx='14' fill='%23D4846A'/%3E%3Crect x='31' y='31' width='38' height='38' rx='8' fill='none' stroke='%23F5EFE6' stroke-width='3.5' stroke-dasharray='7 6'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23F5EFE6'/%3E%3Crect x='18' y='18' width='64' height='64' rx='14' fill='%23D4846A'/%3E%3Crect x='30' y='30' width='40' height='40' rx='8' fill='none' stroke='%23F5EFE6' stroke-width='3.5' stroke-dasharray='7 6'/%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #F5EFE6;
+    --parchment: #EDE4D8;
+    --board-bg: #DDD0BE;
+    --cell-empty: #EDE4D8;
+    --border-soft: rgba(120,90,60,0.15);
+    --border-med: rgba(120,90,60,0.28);
+    --text-dark: #2C1F0E;
+    --text-mid: #7A5C3A;
+    --text-light: #A88060;
+
+    --zone-A: #D4846A; --zone-A-light: #F0C4B4; --zone-A-dark: #8C4028;
+    --zone-B: #7BA882; --zone-B-light: #C2DEC6; --zone-B-dark: #2A5C32;
+    --zone-C: #7A9EC0; --zone-C-light: #BCCFE0; --zone-C-dark: #1E4468;
+    --zone-D: #B07AB0; --zone-D-light: #DEC2DE; --zone-D-dark: #5C2A5C;
+    --zone-E: #C4A84A; --zone-E-light: #EAD89A; --zone-E-dark: #6A5210;
+
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--cream);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text-dark);
+    overflow: hidden;
+  }
+
+  /* ---------- view system ---------- */
+  .view { display: none; }
+  .view.active { display: flex; }
+
+  #game-view, #home-view, #levels-view {
+    height: 100vh;
+    flex-direction: column;
+    align-items: center;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 0 16px;
+    width: 100%;
+  }
+  #home-view { justify-content: center; gap: 18px; }
+  #levels-view { justify-content: flex-start; }
+
+  /* ---------- home screen ---------- */
+  .home-gear {
+    position: fixed;
+    top: 18px; right: 18px;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--parchment);
+    border: 1.5px solid var(--border-med);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.15s, transform 0.15s;
+    z-index: 10;
+  }
+  .home-gear:hover { background: var(--board-bg); transform: rotate(20deg); }
+
+  .home-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 54px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: var(--text-dark);
+    text-align: center;
+    line-height: 1.05;
+    margin-bottom: 6px;
+  }
+  .home-title span { color: var(--zone-A); }
+  .home-tag {
+    font-size: 13px;
+    color: var(--text-light);
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: 10px;
+  }
+
+  .home-card {
+    width: 100%;
+    background: var(--parchment);
+    border: 1.5px solid var(--border-med);
+    border-radius: var(--radius-lg);
+    padding: 22px 22px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    text-align: left;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .home-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(44,31,14,0.10); border-color: var(--text-mid); }
+  .home-card:active { transform: translateY(0); }
+
+  .home-card-primary {
+    background: var(--text-dark);
+    border-color: var(--text-dark);
+    color: var(--cream);
+  }
+  .home-card-primary .home-card-title { color: var(--cream); }
+  .home-card-primary .home-card-sub { color: rgba(245,239,230,0.65); }
+
+  .home-card-row { display: flex; align-items: center; justify-content: space-between; }
+  .home-card-title {
+    font-family: 'Lora', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+  .home-card-sub { font-size: 13px; color: var(--text-mid); margin-top: 4px; }
+  .home-card-arrow { font-size: 26px; opacity: 0.8; }
+  .home-card-icon { font-size: 26px; }
+  .daily-check {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--zone-B); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+  }
+  .home-hint { font-size: 11px; color: var(--text-light); text-align: center; letter-spacing: 0.03em; }
+
+  /* ---------- level select ---------- */
+  .levels-header {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0 12px;
+    flex-shrink: 0;
+  }
+  .levels-title { font-family: 'Lora', serif; font-size: 22px; font-weight: 600; }
+  .icon-btn {
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--parchment);
+    border: 1.5px solid var(--border-med);
+    border-radius: 50%;
+    cursor: pointer; font-size: 18px;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { background: var(--board-bg); }
+  .levels-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    overflow-y: auto;
+    padding: 4px 2px 24px;
+    align-content: start;
+  }
+  .level-tile {
+    aspect-ratio: 1;
+    background: var(--parchment);
+    border: 1.5px solid var(--border-med);
+    border-radius: var(--radius-md);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+    position: relative;
+  }
+  .level-tile:hover { transform: translateY(-2px); border-color: var(--text-mid); }
+  .level-tile.locked { opacity: 0.5; cursor: not-allowed; }
+  .level-tile.locked:hover { transform: none; border-color: var(--border-med); }
+  .level-tile.done { background: var(--zone-B-light); border-color: rgba(123,168,130,0.5); }
+  .level-tile-num { font-family: 'Lora', serif; font-size: 20px; font-weight: 600; color: var(--text-dark); }
+  .level-tile-stars { font-size: 9px; letter-spacing: 1px; height: 11px; }
+  .level-tile-lock { font-size: 16px; }
+
+  /* ---------- game screen (preserved from reference) ---------- */
+  .header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0 10px;
+    flex-shrink: 0;
+  }
+  .game-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-dark);
+    letter-spacing: -0.02em;
+  }
+  .game-title span { color: var(--zone-A); }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .level-badge {
+    background: var(--parchment);
+    border: 1px solid var(--border-med);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-mid);
+    letter-spacing: 0.05em;
+  }
+
+  .status-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0 12px;
+    flex-shrink: 0;
+  }
+  .moves-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+  .moves-count {
+    font-family: 'Lora', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-dark);
+    min-width: 28px;
+  }
+  .hearts { display: flex; gap: 5px; }
+  .heart { width: 20px; height: 20px; position: relative; }
+  .heart svg { width: 100%; height: 100%; }
+  .heart.lost svg .fill { fill: var(--parchment); }
+  .heart svg .fill { fill: var(--zone-A); transition: fill 0.3s; }
+
+  .zones-left { font-size: 13px; color: var(--text-mid); font-weight: 500; }
+  .zones-left strong { color: var(--text-dark); font-family: 'Lora', serif; font-size: 16px; }
+
+  .rules-strip {
+    width: 100%;
+    display: flex;
+    gap: 7px;
+    justify-content: center;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+  .rule-chip {
+    flex: 1;
+    background: var(--parchment);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    padding: 7px 6px;
+    text-align: center;
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 500;
+    color: var(--text-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .board-container {
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* don't stretch the board to the container height */
+    margin-bottom: 14px;
+    overflow: hidden;
+    touch-action: none;
+  }
+  .board { transform-origin: center center; will-change: transform; align-content: center; }
+
+  .board {
+    display: grid;
+    gap: 3px;
+    background: var(--board-bg);
+    border-radius: var(--radius-lg);
+    padding: 8px;
+    border: 1.5px solid var(--border-med);
+  }
+
+  .cell {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s, box-shadow 0.15s;
+    background: var(--cell-empty);
+    border: 1.5px solid transparent;
+    font-family: 'Lora', serif;
+    font-size: 18px;
+    font-weight: 600;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  .cell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: rgba(255,255,255,0);
+    transition: background 0.15s;
+  }
+
+  .cell:hover::after { background: rgba(255,255,255,0.15); }
+  .cell.droppable { cursor: pointer; }
+  .cell.droppable:hover { transform: scale(1.04); }
+
+  .cell[data-zone="A"] { background: var(--zone-A-light); border-color: rgba(212,132,106,0.4); }
+  .cell[data-zone="B"] { background: var(--zone-B-light); border-color: rgba(123,168,130,0.4); }
+  .cell[data-zone="C"] { background: var(--zone-C-light); border-color: rgba(122,158,192,0.4); }
+  .cell[data-zone="D"] { background: var(--zone-D-light); border-color: rgba(176,122,176,0.4); }
+  .cell[data-zone="E"] { background: var(--zone-E-light); border-color: rgba(196,168,74,0.4); }
+
+  .cell.filled[data-zone="A"] { background: var(--zone-A); border-color: var(--zone-A-dark); }
+  .cell.filled[data-zone="B"] { background: var(--zone-B); border-color: var(--zone-B-dark); }
+  .cell.filled[data-zone="C"] { background: var(--zone-C); border-color: var(--zone-C-dark); }
+  .cell.filled[data-zone="D"] { background: var(--zone-D); border-color: var(--zone-D-dark); }
+  .cell.filled[data-zone="E"] { background: var(--zone-E); border-color: var(--zone-E-dark); }
+
+  .cell .clue-num {
+    position: relative;
+    z-index: 1;
+    font-size: 17px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+  .cell[data-zone="A"] .clue-num { color: var(--zone-A-dark); }
+  .cell[data-zone="B"] .clue-num { color: var(--zone-B-dark); }
+  .cell[data-zone="C"] .clue-num { color: var(--zone-C-dark); }
+  .cell[data-zone="D"] .clue-num { color: var(--zone-D-dark); }
+  .cell[data-zone="E"] .clue-num { color: var(--zone-E-dark); }
+  .cell.filled .clue-num { color: rgba(255,255,255,0.9); }
+
+  .cell.filled::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1.5px dashed rgba(255,255,255,0.35);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+
+  .cell.preview {
+    outline: 2.5px dashed rgba(120,90,60,0.55);
+    outline-offset: -3px;
+  }
+  .cell.preview-valid { background: rgba(255,255,255,0.3) !important; }
+  .cell.preview-invalid { background: rgba(220,60,40,0.12) !important; outline-color: rgba(220,60,40,0.6); }
+
+  @keyframes stitchPop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.12); }
+    70%  { transform: scale(0.96); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25%     { transform: translateX(-4px); }
+    75%     { transform: translateX(4px); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .cell.stitch-pop { animation: stitchPop 0.35s ease-out forwards; }
+    .cell.shake { animation: shake 0.3s ease; }
+  }
+
+  .queue-section { width: 100%; flex-shrink: 0; }
+  .queue-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-light);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .queue {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    /* padding gives the hover/bob lift + card shadow room so the overflow
+       clip doesn't cut the tops/sides of the cards */
+    padding: 10px 8px;
+    max-height: 190px;
+    overflow-y: auto;
+  }
+
+  .piece-card {
+    background: white;
+    border: 1.5px solid var(--border-med);
+    border-radius: var(--radius-md);
+    padding: 10px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+    min-width: 82px;
+    position: relative;
+  }
+  .piece-card:hover { border-color: var(--text-mid); transform: translateY(-2px); }
+  .piece-card.selected {
+    border-color: var(--text-dark);
+    box-shadow: 0 0 0 3px rgba(44,31,14,0.12);
+    transform: translateY(-3px);
+  }
+  .piece-card.used { opacity: 0.3; pointer-events: none; }
+
+  .piece-grid { display: grid; gap: 2.5px; }
+  .piece-cell { width: 16px; height: 16px; border-radius: 3px; }
+  .piece-cell.on-A { background: var(--zone-A); }
+  .piece-cell.on-B { background: var(--zone-B); }
+  .piece-cell.on-C { background: var(--zone-C); }
+  .piece-cell.on-D { background: var(--zone-D); }
+  .piece-cell.on-E { background: var(--zone-E); }
+  .piece-cell.empty { background: transparent; }
+
+  .piece-label { font-size: 10px; font-weight: 600; color: var(--text-light); letter-spacing: 0.02em; }
+  .piece-zone-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    position: absolute; top: 7px; right: 7px;
+  }
+
+  .action-bar {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .action-btn {
+    background: white;
+    border: 1.5px solid var(--border-med);
+    border-radius: 24px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+    font-family: 'Inter', sans-serif;
+  }
+  .action-btn:hover { background: var(--parchment); border-color: var(--text-mid); }
+
+  .instruction {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-light);
+    padding: 8px 0 0;
+    line-height: 1.5;
+    min-height: 30px;
+    flex-shrink: 0;
+  }
+  .instruction strong { color: var(--text-mid); font-weight: 600; }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(44,31,14,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    padding: 16px;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--cream);
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border-med);
+    padding: 32px 28px;
+    max-width: 300px;
+    width: 90%;
+    text-align: center;
+    transform: scale(0.92);
+    transition: transform 0.3s;
+  }
+  .overlay.show .modal { transform: scale(1); }
+  .modal-emoji { font-size: 44px; margin-bottom: 12px; }
+  .modal-title {
+    font-family: 'Lora', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+  }
+  .modal-sub { font-size: 14px; color: var(--text-mid); line-height: 1.6; margin-bottom: 24px; }
+  .modal-btn {
+    background: var(--text-dark);
+    color: var(--cream);
+    border: none;
+    border-radius: 24px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    width: 100%;
+    transition: background 0.15s;
+  }
+  .modal-btn:hover { background: var(--zone-A-dark); }
+  .modal-btn.secondary { margin-top: 8px; background: white; color: var(--text-dark); border: 1.5px solid var(--border-med); }
+  .modal-btn.secondary:hover { background: var(--parchment); }
+
+  .stars { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; }
+  .star { font-size: 28px; opacity: 0; transition: opacity 0.3s; }
+  .star.lit { opacity: 1; }
+
+  .progress-dots {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 4px 0 8px;
+    flex-shrink: 0;
+    max-width: 100%;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-med); transition: background 0.3s, transform 0.2s; }
+  .dot.done { background: var(--zone-B); transform: scale(1.15); }
+  .dot.current { background: var(--zone-A); transform: scale(1.25); }
+
+  /* settings rows */
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 2px; border-top: 1px solid var(--border-soft);
+    font-size: 14px; color: var(--text-dark);
+  }
+  .settings-row:first-of-type { border-top: none; }
+  .toggle {
+    width: 46px; height: 26px; border-radius: 14px;
+    background: var(--board-bg); position: relative; cursor: pointer;
+    transition: background 0.2s; border: 1.5px solid var(--border-med);
+  }
+  .toggle.on { background: var(--zone-B); border-color: var(--zone-B); }
+  .toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%; background: white;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(20px); }
+  .link-btn {
+    background: none; border: none; color: var(--zone-A-dark);
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+    padding: 0;
+  }
+  .link-btn.danger { color: #B23A2A; }
+
+  /* ---------- drag & drop ---------- */
+  .board, .piece-card, .cell { touch-action: none; }
+  .piece-card.dragging { opacity: 0.35; }
+  .cell.placed { cursor: grab; }
+  /* cells outside the board shape: invisible spacer */
+  .cell.void { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+  .cell.void::after { display: none; }
+  /* shaped levels: no rectangular board frame, just the shape's cells */
+  .board.shaped { background: transparent; border-color: transparent; padding: 0; }
+
+  /* fixed tray slots: empty slot keeps its space so pieces never shift */
+  .piece-slot-empty { min-width: 82px; visibility: hidden; }
+
+  /* recall (send-back) targeting */
+  .recall-mode .cell.placed { cursor: pointer; }
+  .recall-mode .cell.placed::after { background: rgba(255,255,255,0.25); }
+  .action-btn.active { background: var(--text-dark); color: var(--cream); border-color: var(--text-dark); }
+  .action-btn:disabled { opacity: 0.38; pointer-events: none; }
+  .action-btn .count { font-weight: 700; }
+
+  .drag-ghost {
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 200;
+    display: grid;
+    gap: 3px;
+    transform: translate(-9999px, -9999px);
+    filter: drop-shadow(0 8px 14px rgba(44,31,14,0.35));
+    opacity: 0.92;
+  }
+  .drag-ghost .gcell { width: 50px; height: 50px; border-radius: var(--radius-sm); }
+  .drag-ghost .gcell.on-A { background: var(--zone-A); }
+  .drag-ghost .gcell.on-B { background: var(--zone-B); }
+  .drag-ghost .gcell.on-C { background: var(--zone-C); }
+  .drag-ghost .gcell.on-D { background: var(--zone-D); }
+  .drag-ghost .gcell.on-E { background: var(--zone-E); }
+  .drag-ghost .gcell.empty { background: transparent; }
+
+  /* adaptive progress bar (used when there are many levels) */
+  .progress-bar {
+    width: 60%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-med);
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--zone-A);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HOME VIEW ============ -->
+<div class="view" id="home-view">
+  <div class="home-gear" id="home-gear" aria-label="Settings">⚙️</div>
+  <div>
+    <div class="home-title">Quilt<span>Drop</span></div>
+    <div class="home-tag">Stitch every zone, one piece at a time</div>
+  </div>
+
+  <div class="home-card home-card-primary" id="home-level-card">
+    <div class="home-card-row">
+      <div>
+        <div class="home-card-title" id="home-level-title">Level 1</div>
+        <div class="home-card-sub" id="home-level-sub">0 / 20 levels complete</div>
+      </div>
+      <div class="home-card-arrow">→</div>
+    </div>
+  </div>
+
+  <div class="home-card" id="home-daily-card">
+    <div class="home-card-row">
+      <div>
+        <div class="home-card-title">Daily Quilt</div>
+        <div class="home-card-sub" id="home-daily-sub">📅 Today</div>
+      </div>
+      <div id="home-daily-status" class="home-card-icon">🧵</div>
+    </div>
+  </div>
+
+  <div class="home-hint">Hold the level card to browse all levels</div>
+</div>
+
+<!-- ============ LEVEL SELECT VIEW ============ -->
+<div class="view" id="levels-view">
+  <div class="levels-header">
+    <div class="icon-btn" id="levels-back">←</div>
+    <div class="levels-title">Select Level</div>
+    <div class="icon-btn" id="levels-gear">⚙️</div>
+  </div>
+  <div class="levels-grid" id="levels-grid"></div>
+</div>
+
+<!-- ============ GAME VIEW ============ -->
+<div class="view" id="game-view">
+  <div class="header">
+    <div class="icon-btn" id="game-back">←</div>
+    <div class="level-badge" id="level-badge">LEVEL 1</div>
+    <div class="icon-btn" id="game-gear">⚙️</div>
+  </div>
+
+  <div class="progress-dots" id="progress-dots"></div>
+
+  <div class="status-bar">
+    <div class="moves-display">
+      <span class="moves-count" id="moves-count">12</span>
+      <span>moves</span>
+    </div>
+    <div class="hearts" id="hearts"></div>
+    <div class="zones-left"><strong id="zones-done">0</strong>/<span id="zones-total">0</span> zones</div>
+  </div>
+
+  <div class="rules-strip">
+    <div class="rule-chip">Pieces match their color</div>
+    <div class="rule-chip">Fill every zone</div>
+    <div class="rule-chip">Use every piece</div>
+  </div>
+
+  <div class="board-container" id="board-container">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="queue-section">
+    <div class="queue-label">Next pieces</div>
+    <div class="queue" id="queue"></div>
+  </div>
+
+  <div class="action-bar">
+    <button class="action-btn" id="hint-btn">💡 Hint</button>
+    <button class="action-btn" id="undo-btn">↩ Undo</button>
+    <button class="action-btn" id="recall-btn">♻ Recall</button>
+    <button class="action-btn" id="restart-btn">↺ Restart</button>
+  </div>
+
+  <div class="instruction" id="instruction">
+    Select a piece below, then tap a <strong>colored zone</strong> on the board to place it.
+  </div>
+</div>
+
+<!-- ============ OVERLAYS ============ -->
+<div class="overlay" id="win-overlay">
+  <div class="modal">
+    <div class="modal-emoji">🧵</div>
+    <div class="stars" id="win-stars">
+      <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
+    </div>
+    <div class="modal-title" id="win-title">Quilt complete!</div>
+    <div class="modal-sub" id="win-sub">Beautiful stitching.</div>
+    <button class="modal-btn" id="next-btn">Next level →</button>
+    <button class="modal-btn secondary" id="replay-btn">Play again</button>
+    <button class="modal-btn secondary" id="win-home-btn">Home</button>
+  </div>
+</div>
+
+<div class="overlay" id="fail-overlay">
+  <div class="modal">
+    <div class="modal-emoji">🪡</div>
+    <div class="modal-title" id="fail-title">Out of moves</div>
+    <div class="modal-sub" id="fail-sub">Try a different piece order.</div>
+    <button class="modal-btn" id="fail-undo-btn" style="display:none">↩ Undo last move</button>
+    <button class="modal-btn" id="retry-btn">Try again</button>
+    <button class="modal-btn secondary" id="fail-home-btn">Home</button>
+  </div>
+</div>
+
+<div class="overlay" id="intro-overlay">
+  <div class="modal">
+    <div class="modal-emoji">🪡</div>
+    <div class="modal-title">Quilt Drop</div>
+    <div class="modal-sub">
+      Each colored zone shows its area as a number.<br><br>
+      Select a piece from the queue, then tap the board to fill each zone exactly.
+    </div>
+    <button class="modal-btn" id="start-btn">Start stitching</button>
+  </div>
+</div>
+
+<div class="overlay" id="settings-overlay">
+  <div class="modal">
+    <div class="modal-emoji">⚙️</div>
+    <div class="modal-title">Settings</div>
+    <div style="text-align:left;margin-bottom:20px">
+      <div class="settings-row">
+        <span>Sound</span>
+        <div class="toggle" id="sound-toggle"></div>
+      </div>
+      <div class="settings-row">
+        <span>Reset progress</span>
+        <button class="link-btn danger" id="reset-btn">Reset</button>
+      </div>
+    </div>
+    <button class="modal-btn" id="settings-close">Close</button>
+  </div>
+</div>
+
+<script>
+const ZONE_COLORS = {
+  A: { name: 'Terracotta' },
+  B: { name: 'Sage' },
+  C: { name: 'Slate' },
+  D: { name: 'Mauve' },
+  E: { name: 'Amber' },
+};
+
+/* Level data is generated by build-levels.js and injected below. */
+const LEVELS = /*generated*/[{"cols":4,"rows":2,"moves":6,"hearts":3,"grid":[["A","A","B","B"],["A","A","B","B"]],"clues":{"A":[0,0],"B":[0,2]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":4,"rows":3,"moves":8,"hearts":3,"grid":[["A","A","A","A"],["B","B","A","A"],["B","B","A","A"]],"clues":{"A":[0,0],"B":[1,0]},"pieces":[{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":2,"moves":8,"hearts":3,"grid":[["A","B","B","B","B","A"],["A","A","A","A","A","A"]],"clues":{"A":[0,0],"B":[0,1]},"pieces":[{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,0,1],[1,1,1]],"label":"tetromino"}]},{"cols":4,"rows":4,"moves":10,"hearts":3,"grid":[["B","B","B","B"],["B","B","B","A"],["A","B","A","A"],["A","A","A","A"]],"clues":{"A":[1,3],"B":[0,0]},"pieces":[{"zone":"A","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"}]},{"cols":4,"rows":6,"moves":10,"hearts":3,"grid":[["B","B",null,null],["B","B",null,null],["B","B",null,null],["B","B",null,null],["A","A","A","A"],["A","A","A","A"]],"clues":{"A":[4,0],"B":[0,0]},"pieces":[{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"}]},{"cols":4,"rows":4,"moves":10,"hearts":3,"grid":[["B","B","B","B"],["B","B","C","B"],["C","C","C","B"],["A","A","A","A"]],"clues":{"A":[3,0],"B":[0,0],"C":[1,2]},"pieces":[{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":4,"rows":3,"moves":8,"hearts":3,"grid":[["B","B","B","A"],["C","C","B","A"],["C","C","A","A"]],"clues":{"A":[0,3],"B":[0,0],"C":[1,0]},"pieces":[{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":10,"hearts":3,"grid":[["B","B","B","B",null,null],["B","B","B","A",null,null],[null,null,"B","A","A","A"],[null,null,"A","A","A","A"]],"clues":{"A":[1,3],"B":[0,0]},"pieces":[{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":8,"rows":2,"moves":10,"hearts":3,"grid":[["B","B","B","B","A","A","A","A"],["B","B","B","B","A","A","A","A"]],"clues":{"A":[0,4],"B":[0,0]},"pieces":[{"zone":"B","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"}]},{"cols":4,"rows":4,"moves":10,"hearts":3,"grid":[["B","B","B","A"],["B","C","C","A"],["A","C","C","A"],["A","A","A","A"]],"clues":{"A":[0,3],"B":[0,0],"C":[1,1]},"pieces":[{"zone":"B","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"}]},{"cols":5,"rows":4,"moves":12,"hearts":3,"grid":[["C","A","A","A","B"],["C","C","C","A","B"],["C","C","B","B","B"],["C","C","B","B","B"]],"clues":{"A":[0,1],"B":[0,4],"C":[0,0]},"pieces":[{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":12,"hearts":3,"grid":[["A","A","A","A","A","A"],["C","C","C","C","A","A"],[null,null,"B","B",null,null],[null,null,"B","B",null,null],[null,null,"B","B",null,null],[null,null,"B","B",null,null]],"clues":{"A":[0,0],"B":[2,2],"C":[1,0]},"pieces":[{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":4,"rows":5,"moves":12,"hearts":3,"grid":[["C","C","A","A"],["B","C","C","A"],["B","B","B","A"],["B","B","A","A"],["B","B","A","A"]],"clues":{"A":[0,2],"B":[1,0],"C":[0,0]},"pieces":[{"zone":"A","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,0],[0,1,1]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":14,"hearts":3,"grid":[["B","A","A","C","C","C"],["B","B","A","A","A","C"],["B","B","A","A","A","C"],["B","B","B","C","C","C"]],"clues":{"A":[0,1],"B":[0,0],"C":[0,3]},"pieces":[{"zone":"A","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":12,"hearts":3,"grid":[[null,null,"A","B",null,null],[null,null,"A","B",null,null],["A","A","A","B","B","C"],["A","A","A","C","C","C"],[null,null,"C","C",null,null],[null,null,"C","C",null,null]],"clues":{"A":[0,2],"B":[0,3],"C":[2,5]},"pieces":[{"zone":"B","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"}]},{"cols":4,"rows":6,"moves":14,"hearts":3,"grid":[["C","C","C","C"],["C","C","A","B"],["A","C","A","B"],["A","C","A","B"],["A","A","A","B"],["B","B","B","B"]],"clues":{"A":[1,2],"B":[1,3],"C":[0,0]},"pieces":[{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":5,"rows":4,"moves":12,"hearts":3,"grid":[["C","A","A","A","A"],["C","B","B","A","A"],["C","B","B","A","A"],["C","B","B","B","B"]],"clues":{"A":[0,1],"B":[1,1],"C":[0,0]},"pieces":[{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":12,"hearts":3,"grid":[[null,null,"C","C","C","C"],[null,null,"A","A","A","A"],[null,null,"A","A",null,null],[null,null,"A","A",null,null],["B","B","B","B",null,null],["B","B","B","B",null,null]],"clues":{"A":[1,2],"B":[4,0],"C":[0,2]},"pieces":[{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":14,"hearts":3,"grid":[["B","B","B","B","B","A"],["B","B","D","D","B","A"],["C","D","D","A","A","A"],["C","C","C","A","A","A"]],"clues":{"A":[0,5],"B":[0,0],"C":[2,0],"D":[1,2]},"pieces":[{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"}]},{"cols":4,"rows":4,"moves":10,"hearts":3,"grid":[["B","C","C","C"],["B","B","A","C"],["B","A","A","A"],["A","A","A","A"]],"clues":{"A":[1,2],"B":[0,0],"C":[0,1]},"pieces":[{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[0,1,0],[1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["A","A",null,null,"B","B"],["A","A",null,null,"B","B"],["A","A","A","A","C","C"],["A","A","A","A","C","C"],[null,null,"A","A",null,null],[null,null,"A","A",null,null]],"clues":{"A":[0,0],"B":[0,4],"C":[2,4]},"pieces":[{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":14,"hearts":3,"grid":[["A","A","A","A","B","B"],["C","A","A","B","B","B"],["C","A","A","B","B","B"],["C","C","B","B","B","B"]],"clues":{"A":[0,0],"B":[0,4],"C":[1,0]},"pieces":[{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":8,"rows":3,"moves":14,"hearts":3,"grid":[["A","A","A","A","A","A","A","C"],["A","B","B","A","A","A","A","C"],["B","B","B","B","B","B","C","C"]],"clues":{"A":[0,0],"B":[1,1],"C":[0,7]},"pieces":[{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":14,"hearts":3,"grid":[[null,null,"B","B",null,null],[null,null,"C","B",null,null],["C","C","C","B","B","B"],["A","A","A","A","B","B"],[null,null,"A","A",null,null],[null,null,"A","A",null,null],[null,null,"A","A",null,null],[null,null,"A","A",null,null]],"clues":{"A":[3,0],"B":[0,2],"C":[1,2]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":14,"hearts":3,"grid":[["C","C","C","D","A","A"],["C","B","D","D","A","A"],["B","B","B","D","A","A"],["B","B","B","B","A","A"]],"clues":{"A":[0,4],"B":[1,1],"C":[0,0],"D":[0,3]},"pieces":[{"zone":"C","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[0,1,0],[1,1,1]],"label":"tetromino"}]},{"cols":4,"rows":6,"moves":14,"hearts":3,"grid":[["A","A","D","D"],["A","A","A","D"],["A","A","A","D"],["B","B","B","C"],["B","B","C","C"],["B","B","B","C"]],"clues":{"A":[0,0],"B":[3,0],"C":[3,3],"D":[0,2]},"pieces":[{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["A","C",null,null,null,null],["A","C",null,null,null,null],["A","C","C","B",null,null],["A","A","A","B",null,null],["A","A","B","B","B","B"],["B","B","B","B","B","B"]],"clues":{"A":[0,0],"B":[2,3],"C":[0,1]},"pieces":[{"zone":"B","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1,1],[1,1,0]],"label":"tetromino"}]},{"cols":7,"rows":4,"moves":16,"hearts":3,"grid":[["A","B","B","D","D","D","C"],["A","A","B","B","C","D","C"],["A","A","B","B","C","C","C"],["A","A","A","B","B","C","C"]],"clues":{"A":[0,0],"B":[0,1],"C":[0,6],"D":[0,3]},"pieces":[{"zone":"D","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["A","A","B","B","B","B","C","C"],["A","A","B","B","C","B","C","C"],["A","A","A","B","C","C","C","D"],["A","A","A","A","A","D","D","D"]],"clues":{"A":[0,0],"B":[0,2],"C":[0,6],"D":[2,7]},"pieces":[{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":18,"hearts":3,"grid":[[null,null,"A","A",null,null],[null,null,"B","A",null,null],["D","D","B","A","A","A"],["D","B","B","B","B","A"],["D","D","B","B","C","A"],["D","D","D","C","C","C"],[null,null,"C","C",null,null],[null,null,"C","C",null,null]],"clues":{"A":[0,2],"B":[1,2],"C":[4,4],"D":[2,0]},"pieces":[{"zone":"D","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["A","A","B","B","B","B"],["A","A","A","B","B","B"],["A","B","B","B","B","D"],["A","A","B","A","D","D"],["C","A","A","A","D","C"],["C","C","C","C","C","C"]],"clues":{"A":[0,0],"B":[0,2],"C":[4,0],"D":[2,5]},"pieces":[{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"A","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,1],[1,1],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[1,1],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["D","D",null,null,"B","B"],["D","D",null,null,"B","C"],["D","D","A","A","B","C"],["D","A","A","A","B","C"],["D","A",null,null,"B","C"],["A","A",null,null,"B","B"]],"clues":{"A":[2,2],"B":[0,4],"C":[1,5],"D":[0,0]},"pieces":[{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":14,"hearts":3,"grid":[["D","A","A","A","C","C"],["D","A","A","A","A","C"],["D","D","D","A","B","C"],["D","D","D","B","B","B"]],"clues":{"A":[0,1],"B":[2,4],"C":[0,4],"D":[0,0]},"pieces":[{"zone":"A","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":18,"hearts":3,"grid":[["D","C","C","B","B","B"],["D","D","C","C","B","B"],["D","D",null,null,"B","B"],["A","D",null,null,"A","B"],["A","D","D","A","A","A"],["A","A","A","A","A","A"]],"clues":{"A":[3,0],"B":[0,3],"C":[0,1],"D":[0,0]},"pieces":[{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["C","A","A","A","B","B","B","B"],["C","A","A","A","A","B","D","B"],["C","C","A","A","A","B","D","B"],["C","C","C","C","A","A","D","D"]],"clues":{"A":[0,1],"B":[0,4],"C":[0,0],"D":[1,6]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["B","B","C","C","C","C"],["A","B","B","B","B","B"],["A","B",null,null,null,null],["A","A",null,null,null,null],["A","A","D","D","D","D"],["A","A","D","D","D","D"]],"clues":{"A":[1,0],"B":[0,0],"C":[0,2],"D":[4,2]},"pieces":[{"zone":"D","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"D","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["D","D","D","D","D","B"],["D","D","C","B","B","B"],["A","D","C","C","B","B"],["A","A","C","C","B","B"],["A","A","A","C","B","B"],["A","A","C","C","B","B"]],"clues":{"A":[2,0],"B":[0,5],"C":[1,2],"D":[0,0]},"pieces":[{"zone":"C","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["B","B",null,null,"A","D"],["B","B",null,null,"A","D"],["B","B",null,null,"A","D"],["C","B",null,null,"A","D"],["C","B","A","A","A","A"],["C","C","C","C","C","C"]],"clues":{"A":[0,4],"B":[0,0],"C":[3,0],"D":[0,5]},"pieces":[{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["B","B","B","B","C","D","D","D"],["B","B","B","A","C","C","C","D"],["B","A","A","A","A","A","A","E"],["A","A","A","A","A","E","E","E"]],"clues":{"A":[1,3],"B":[0,0],"C":[0,4],"D":[0,5],"E":[2,7]},"pieces":[{"zone":"D","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"},{"zone":"E","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0,0],[1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["D","D",null,null,"A","A"],["D","C",null,null,"A","A"],["D","C","A","A","A","A"],["C","C","A","B","B","A"],[null,null,"A","B",null,null],[null,null,"A","B",null,null]],"clues":{"A":[0,4],"B":[3,3],"C":[1,1],"D":[0,0]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["A","C","C","C","E","E"],["A","A","D","C","E","B"],["A","A","D","C","E","B"],["A","A","D","C","B","B"],["D","A","D","C","B","B"],["D","D","D","C","B","B"]],"clues":{"A":[0,0],"B":[1,5],"C":[0,1],"D":[1,2],"E":[0,4]},"pieces":[{"zone":"A","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"E","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":12,"hearts":3,"grid":[["C","C","A","A","B","B"],["C","C","A","A","B","B"],[null,null,"A","A",null,null],[null,null,"D","A",null,null],[null,null,"D","A",null,null],[null,null,"D","D",null,null]],"clues":{"A":[0,2],"B":[0,4],"C":[0,0],"D":[3,2]},"pieces":[{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["D","D","C","C","C","B","B","A"],["D","D","D","C","C","A","B","A"],["D","D","C","C","C","A","B","A"],["D","A","A","A","A","A","A","A"]],"clues":{"A":[0,7],"B":[0,5],"C":[0,2],"D":[0,0]},"pieces":[{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":14,"hearts":3,"grid":[[null,null,"B","B",null,null],[null,null,"B","B",null,null],[null,null,"C","C",null,null],[null,null,"C","D",null,null],["A","A","C","D","D","D"],["A","A","A","D","D","D"],[null,null,"A","D",null,null],[null,null,"A","A",null,null]],"clues":{"A":[4,0],"B":[0,2],"C":[2,2],"D":[3,3]},"pieces":[{"zone":"D","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["B","C","C","C","C","A"],["B","B","B","B","B","A"],["B","B","B","B","D","A"],["B","B","B","B","D","A"],["B","B","D","D","D","D"],["D","D","D","D","D","D"]],"clues":{"A":[0,5],"B":[0,0],"C":[0,1],"D":[2,4]},"pieces":[{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[1,0,0],[1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":12,"hearts":3,"grid":[[null,null,"B","D",null,null],[null,null,"B","D",null,null],["C","C","B","D","D","A"],["C","C","B","A","A","A"],[null,null,"A","A",null,null],[null,null,"A","A",null,null]],"clues":{"A":[2,5],"B":[0,2],"C":[2,0],"D":[0,3]},"pieces":[{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"}]},{"cols":7,"rows":4,"moves":16,"hearts":3,"grid":[["A","B","B","B","D","C","C"],["A","B","B","B","D","C","C"],["A","A","B","B","D","D","A"],["A","A","A","A","A","A","A"]],"clues":{"A":[0,0],"B":[0,1],"C":[0,5],"D":[0,4]},"pieces":[{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,0,1],[1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":18,"hearts":3,"grid":[[null,null,"B","B",null,null],[null,null,"B","B",null,null],["B","B","B","B","C","E"],["B","B","B","B","C","E"],["D","D","D","C","C","E"],["D","A","A","A","A","E"],[null,null,"A","A",null,null],[null,null,"A","A",null,null]],"clues":{"A":[5,1],"B":[0,2],"C":[2,4],"D":[4,0],"E":[2,5]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"E","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["D","C","C","E","E","A"],["D","C","C","E","E","A"],["D","D","C","B","A","A"],["D","C","C","B","A","A"],["D","C","B","B","A","A"],["D","D","B","B","B","B"]],"clues":{"A":[0,5],"B":[2,3],"C":[0,1],"D":[0,0],"E":[0,3]},"pieces":[{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[1,1],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"E","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":10,"hearts":3,"grid":[["A","A","A","A",null,null],["A","A","A","A",null,null],[null,null,"C","C","C","C"],[null,null,"B","B","B","B"]],"clues":{"A":[0,0],"B":[3,2],"C":[2,2]},"pieces":[{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["B","C","C","B","A","E","D","D"],["B","C","C","B","A","E","E","D"],["B","B","B","B","A","E","D","D"],["A","A","A","A","A","D","D","D"]],"clues":{"A":[0,4],"B":[0,0],"C":[0,1],"D":[0,6],"E":[0,5]},"pieces":[{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"E","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["D","D",null,null,null,null],["D","B",null,null,null,null],["D","B","B","B",null,null],["B","B","B","C",null,null],["C","B","C","C","A","A"],["C","C","C","C","A","A"]],"clues":{"A":[4,4],"B":[1,1],"C":[3,3],"D":[0,0]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"C","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["A","A","A","C","C","C"],["A","D","A","C","C","C"],["A","D","A","A","A","C"],["A","D","B","B","B","C"],["A","D","D","B","B","B"],["A","D","D","D","B","B"]],"clues":{"A":[0,0],"B":[3,2],"C":[0,3],"D":[1,1]},"pieces":[{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"D","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["C","C",null,null,"B","B"],["C","C",null,null,"B","B"],["C","C","C","C","B","B"],["C","C","C","C","B","B"],["D","D",null,null,"A","A"],["D","D",null,null,"A","A"]],"clues":{"A":[4,4],"B":[0,4],"C":[0,0],"D":[4,0]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["C","C","C","A","A","A","B","B"],["C","C","A","A","A","A","B","B"],["C","E","E","A","E","D","D","D"],["C","C","E","E","E","E","E","D"]],"clues":{"A":[0,3],"B":[0,6],"C":[0,0],"D":[2,5],"E":[2,1]},"pieces":[{"zone":"D","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"E","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"E","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,1,0]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":18,"hearts":3,"grid":[["A","A","E","E","B","B"],["A","E","E","E","E","B"],["A","E",null,null,"C","B"],["A","E",null,null,"C","C"],["A","C","C","C","C","D"],["A","A","C","D","D","D"]],"clues":{"A":[0,0],"B":[0,4],"C":[2,4],"D":[4,5],"E":[0,2]},"pieces":[{"zone":"C","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"E","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"E","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["B","B","B","B","A","A"],["B","B","B","A","A","E"],["C","B","A","A","A","E"],["C","C","C","A","E","E"],["D","C","C","C","C","E"],["D","D","D","E","E","E"]],"clues":{"A":[0,4],"B":[0,0],"C":[2,0],"D":[4,0],"E":[1,5]},"pieces":[{"zone":"E","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"E","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":14,"hearts":3,"grid":[[null,null,"D","D",null,null],[null,null,"D","A",null,null],["D","D","D","A","A","A"],["D","D","A","A","A","A"],[null,null,"C","C",null,null],[null,null,"C","C",null,null],[null,null,"B","B",null,null],[null,null,"B","B",null,null]],"clues":{"A":[1,3],"B":[6,2],"C":[4,2],"D":[0,2]},"pieces":[{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["B","B","B","C","C","C","D","D"],["E","B","A","C","C","C","D","D"],["E","E","A","A","C","C","D","D"],["E","A","A","A","A","A","D","D"]],"clues":{"A":[1,2],"B":[0,0],"C":[0,3],"D":[0,6],"E":[1,0]},"pieces":[{"zone":"E","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["B","B","D","D","D","D"],["B","B","D","D","D","D"],["B","B",null,null,null,null],["B","A",null,null,null,null],["B","A","A","A","A","A"],["C","C","C","C","A","A"]],"clues":{"A":[3,1],"B":[0,0],"C":[5,0],"D":[0,2]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"}]}];
+const DAILY_LEVELS = /*generated*/[{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["A","A",null,null,"C","C"],["A","A",null,null,"C","C"],["A","A","B","C","C","C"],["A","A","B","B","B","C"],[null,null,"B","B",null,null],[null,null,"B","B",null,null]],"clues":{"A":[0,0],"B":[2,2],"C":[0,4]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":14,"hearts":3,"grid":[[null,null,"B","B",null,null],[null,null,"B","B",null,null],["B","B","B","B","A","A"],["B","B","B","A","A","A"],[null,null,"B","A",null,null],[null,null,"A","A",null,null],[null,null,"C","C",null,null],[null,null,"C","C",null,null]],"clues":{"A":[2,4],"B":[0,2],"C":[6,2]},"pieces":[{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":18,"hearts":3,"grid":[[null,null,"A","A",null,null],[null,null,"A","A",null,null],["C","C","A","A","B","D"],["C","C","A","A","B","D"],["C","C","C","A","B","D"],["C","C","C","A","B","D"],[null,null,"C","A",null,null],[null,null,"C","A",null,null]],"clues":{"A":[0,2],"B":[2,4],"C":[2,0],"D":[2,5]},"pieces":[{"zone":"C","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":18,"hearts":3,"grid":[["A","B","B","B","B","B"],["A","A","A","B","B","B"],["C","A",null,null,"D","D"],["C","A",null,null,"D","D"],["C","A","A","D","D","D"],["C","D","D","D","D","D"]],"clues":{"A":[0,0],"B":[0,1],"C":[2,0],"D":[2,4]},"pieces":[{"zone":"B","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["A","A","C","C","C","C"],["A","A","A","C","C","C"],["A","B","A","A","A","C"],["B","B","D","A","A","D"],["B","B","D","D","A","D"],["B","B","B","D","D","D"]],"clues":{"A":[0,0],"B":[2,1],"C":[0,2],"D":[3,2]},"pieces":[{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[0,1,0]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[1,1],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":14,"hearts":3,"grid":[["C","C","B","B","B","B"],["C","A","A","A","B","B"],["C","A","A","A","B","B"],["A","A","A","A","A","A"]],"clues":{"A":[1,1],"B":[0,2],"C":[0,0]},"pieces":[{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["A","A",null,null,"D","C"],["A","A",null,null,"D","C"],["A","A","A","A","D","C"],["B","B","B","B","D","C"],["B","B",null,null,"C","C"],["B","B",null,null,"C","C"]],"clues":{"A":[0,0],"B":[3,0],"C":[0,5],"D":[0,4]},"pieces":[{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["B","B",null,null,"D","D"],["B","B",null,null,"D","C"],["B","B",null,null,"D","C"],["A","B",null,null,"C","C"],["A","B","A","A","A","C"],["A","A","A","C","C","C"]],"clues":{"A":[3,0],"B":[0,0],"C":[1,5],"D":[0,4]},"pieces":[{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["B","B",null,null,null,null],["B","B",null,null,null,null],["B","B","B","B",null,null],["A","A","A","A",null,null],["A","A","A","A","C","C"],["A","A","A","A","C","C"]],"clues":{"A":[3,0],"B":[0,0],"C":[4,4]},"pieces":[{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["B","B","A","A","D","D","D","D"],["B","B","A","D","D","D","D","C"],["B","B","A","A","A","C","C","C"],["B","B","A","A","C","C","C","C"]],"clues":{"A":[0,2],"B":[0,0],"C":[1,7],"D":[0,4]},"pieces":[{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["A","A",null,null,"B","B"],["A","A",null,null,"B","B"],["A","A","A","C","B","B"],["A","C","C","C","B","B"],[null,null,"C","C",null,null],[null,null,"C","C",null,null]],"clues":{"A":[0,0],"B":[0,4],"C":[2,3]},"pieces":[{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":14,"hearts":3,"grid":[[null,null,"B","C",null,null],[null,null,"B","C",null,null],["A","A","B","C","C","C"],["A","A","B","C","C","C"],[null,null,"B","B",null,null],[null,null,"B","B",null,null],[null,null,"B","B",null,null],[null,null,"B","B",null,null]],"clues":{"A":[2,0],"B":[0,2],"C":[0,3]},"pieces":[{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":18,"hearts":3,"grid":[[null,null,"C","D",null,null],[null,null,"C","D",null,null],["A","C","C","D","D","B"],["A","C","C","B","B","B"],["A","A","C","C","B","B"],["A","A","A","A","B","B"],[null,null,"A","A",null,null],[null,null,"A","A",null,null]],"clues":{"A":[2,0],"B":[2,5],"C":[0,2],"D":[0,3]},"pieces":[{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":18,"hearts":3,"grid":[["D","D","A","A","A","A"],["B","D","A","A","A","A"],["B","D",null,null,"A","A"],["B","B",null,null,"A","C"],["B","B","C","C","A","C"],["B","B","C","C","C","C"]],"clues":{"A":[0,2],"B":[1,0],"C":[3,5],"D":[0,0]},"pieces":[{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["D","D","D","D","B","B"],["D","C","D","D","C","B"],["A","C","D","C","C","B"],["A","C","C","C","B","B"],["A","A","A","B","B","A"],["A","A","A","A","A","A"]],"clues":{"A":[2,0],"B":[0,4],"C":[1,1],"D":[0,0]},"pieces":[{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[1,1],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"B","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,1],[1,1],[1,0]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":14,"hearts":3,"grid":[["A","A","A","B","B","B"],["A","A","A","C","C","B"],["A","C","A","C","B","B"],["C","C","C","C","B","B"]],"clues":{"A":[0,0],"B":[0,3],"C":[1,3]},"pieces":[{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["D","D",null,null,"C","C"],["D","D",null,null,"C","C"],["A","A","B","C","C","C"],["A","A","B","B","B","C"],["A","A",null,null,"B","B"],["A","A",null,null,"B","B"]],"clues":{"A":[2,0],"B":[2,2],"C":[0,4],"D":[0,0]},"pieces":[{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["D","D",null,null,"B","B"],["A","D",null,null,"C","B"],["A","D",null,null,"C","B"],["A","C",null,null,"C","B"],["A","C","C","C","C","B"],["A","A","A","A","B","B"]],"clues":{"A":[1,0],"B":[0,4],"C":[1,4],"D":[0,0]},"pieces":[{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["B","A",null,null,null,null],["B","A",null,null,null,null],["B","A","A","A",null,null],["B","A","A","A",null,null],["B","B","A","A","C","C"],["B","B","A","A","C","C"]],"clues":{"A":[0,1],"B":[0,0],"C":[4,4]},"pieces":[{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["D","D","D","D","D","B","B","C"],["D","D","D","A","A","B","C","C"],["A","A","A","A","A","B","B","C"],["A","A","A","A","A","B","B","B"]],"clues":{"A":[1,3],"B":[0,5],"C":[0,7],"D":[0,0]},"pieces":[{"zone":"C","shape":[[0,1],[1,1],[0,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"D","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[0,1,0],[1,1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["B","B",null,null,"C","C"],["B","B",null,null,"C","C"],["B","B","B","A","A","A"],["B","B","B","A","A","A"],[null,null,"B","A",null,null],[null,null,"B","A",null,null]],"clues":{"A":[2,3],"B":[0,0],"C":[0,4]},"pieces":[{"zone":"A","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":14,"hearts":3,"grid":[[null,null,"A","A",null,null],[null,null,"A","A",null,null],["A","A","A","B","B","B"],["A","C","C","B","B","B"],[null,null,"C","B",null,null],[null,null,"C","B",null,null],[null,null,"B","B",null,null],[null,null,"B","B",null,null]],"clues":{"A":[0,2],"B":[2,3],"C":[3,1]},"pieces":[{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"}]},{"cols":6,"rows":8,"moves":18,"hearts":3,"grid":[[null,null,"C","B",null,null],[null,null,"C","B",null,null],["C","C","C","B","B","B"],["A","C","C","B","D","B"],["A","C","D","D","D","B"],["A","A","A","A","A","A"],[null,null,"A","A",null,null],[null,null,"A","A",null,null]],"clues":{"A":[3,0],"B":[0,3],"C":[0,2],"D":[3,4]},"pieces":[{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":18,"hearts":3,"grid":[["D","D","D","D","B","B"],["C","C","C","C","B","B"],["C","C",null,null,"B","B"],["C","C",null,null,"A","B"],["A","A","A","A","A","B"],["A","A","A","A","A","A"]],"clues":{"A":[3,4],"B":[0,4],"C":[1,0],"D":[0,0]},"pieces":[{"zone":"A","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"D","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1],[0,0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":20,"hearts":3,"grid":[["B","B","B","B","A","A"],["B","B","B","B","A","D"],["C","C","A","A","A","D"],["C","C","A","A","D","D"],["C","C","C","A","D","D"],["C","A","A","A","D","D"]],"clues":{"A":[0,4],"B":[0,0],"C":[2,0],"D":[1,5]},"pieces":[{"zone":"C","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"B","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"D","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"}]},{"cols":6,"rows":4,"moves":14,"hearts":3,"grid":[["B","B","A","A","A","A"],["B","B","A","A","A","C"],["B","B","A","C","C","C"],["B","B","C","C","C","C"]],"clues":{"A":[0,2],"B":[0,0],"C":[1,5]},"pieces":[{"zone":"C","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[0,1,1],[1,1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"C","shape":[[0,0,1],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["B","B",null,null,"C","C"],["B","D",null,null,"C","C"],["B","D","D","D","C","C"],["B","D","D","D","C","C"],["B","D",null,null,"A","A"],["B","B",null,null,"A","A"]],"clues":{"A":[4,4],"B":[0,0],"C":[0,4],"D":[1,1]},"pieces":[{"zone":"C","shape":[[0,1],[0,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,0],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"D","shape":[[1,1,1],[1,0,0]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":16,"hearts":3,"grid":[["B","B",null,null,"D","C"],["B","B",null,null,"D","C"],["B","A",null,null,"D","C"],["B","A",null,null,"D","C"],["B","A","A","C","C","C"],["B","A","A","A","A","C"]],"clues":{"A":[2,1],"B":[0,0],"C":[0,5],"D":[0,4]},"pieces":[{"zone":"D","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"B","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,0],[1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1,1],[0,0,1]],"label":"tetromino"}]},{"cols":6,"rows":6,"moves":14,"hearts":3,"grid":[["B","B",null,null,null,null],["B","B",null,null,null,null],["A","A","A","A",null,null],["A","A","A","A",null,null],["A","A","C","A","C","C"],["A","C","C","C","C","C"]],"clues":{"A":[2,0],"B":[0,0],"C":[4,2]},"pieces":[{"zone":"A","shape":[[1,1,0],[0,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"B","shape":[[1,1],[1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"C","shape":[[1,1],[1,1]],"label":"tetromino"}]},{"cols":8,"rows":4,"moves":18,"hearts":3,"grid":[["C","C","B","B","B","B","D","D"],["C","C","C","A","B","B","B","D"],["C","C","A","A","A","D","B","D"],["C","A","A","A","A","D","D","D"]],"clues":{"A":[1,3],"B":[0,2],"C":[0,0],"D":[0,6]},"pieces":[{"zone":"C","shape":[[1],[1],[1],[1]],"label":"tetromino"},{"zone":"D","shape":[[1,1],[0,1],[0,1]],"label":"tetromino"},{"zone":"C","shape":[[1,0],[1,1],[1,0]],"label":"tetromino"},{"zone":"A","shape":[[0,1,0],[1,1,1]],"label":"tetromino"},{"zone":"B","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"D","shape":[[1,0,0],[1,1,1]],"label":"tetromino"},{"zone":"A","shape":[[1,0],[1,1],[0,1]],"label":"tetromino"},{"zone":"B","shape":[[1,1,1],[0,0,1]],"label":"tetromino"}]}];
+
+/* ===================== persistence ===================== */
+const LS = {
+  getProgress() { return parseInt(localStorage.getItem('qd_progress') || '1', 10) || 1; },
+  setProgress(n) { localStorage.setItem('qd_progress', String(n)); },
+  getStars() {
+    try { return JSON.parse(localStorage.getItem('qd_stars') || '{}') || {}; }
+    catch (e) { return {}; }
+  },
+  setStar(idx, stars) {
+    const all = LS.getStars();
+    all[idx] = Math.max(all[idx] || 0, stars);
+    localStorage.setItem('qd_stars', JSON.stringify(all));
+  },
+  isDailyDone(key) { return localStorage.getItem('qd_daily_' + key) === '1'; },
+  setDailyDone(key) { localStorage.setItem('qd_daily_' + key, '1'); },
+  getSound() { return localStorage.getItem('qd_sound') !== '0'; },
+  setSound(on) { localStorage.setItem('qd_sound', on ? '1' : '0'); },
+  introSeen() { return localStorage.getItem('qd_intro') === '1'; },
+  markIntro() { localStorage.setItem('qd_intro', '1'); },
+  reset() {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('qd_'))
+      .forEach(k => localStorage.removeItem(k));
+  },
+};
+
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function todayLabel() {
+  const d = new Date();
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function dayOfYear() {
+  const d = new Date();
+  const start = new Date(d.getFullYear(), 0, 0);
+  return Math.floor((d - start) / 86400000);
+}
+
+/* ===================== view switching ===================== */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(name + '-view').classList.add('active');
+}
+
+/* ===================== dev config ===================== */
+// Dev build: every level is selectable from the level-select grid regardless
+// of how far the player has progressed.
+const DEV_UNLOCK_ALL = true;
+
+/* ===================== game state ===================== */
+let state = {
+  levelIdx: 0, level: null, isDaily: false,
+  grid: [], filled: [], cellPiece: [], placedCells: {},
+  moves: 0, hearts: 3, selectedPieceIdx: null,
+  pieceBank: [], usedPieces: [], history: [], zonesDone: new Set(),
+  zoneAreas: {},
+};
+
+function loadLevel(idx, opts) {
+  opts = opts || {};
+  const isDaily = !!opts.daily;
+  const lvl = isDaily ? DAILY_LEVELS[idx] : LEVELS[idx];
+  state = {
+    levelIdx: idx, level: lvl, isDaily,
+    moves: lvl.moves, hearts: lvl.hearts,
+    selectedPieceIdx: null,
+    pieceBank: lvl.pieces.map((p, i) => ({ ...p, id: i })),
+    usedPieces: [], zonesDone: new Set(), history: [],
+    grid: [], filled: [], cellPiece: [], placedCells: {}, zoneAreas: {},
+    undosLeft: 5, hintsLeft: 3, recallsLeft: 3, recallMode: false,
+  };
+  for (let r = 0; r < lvl.rows; r++)
+    for (let c = 0; c < lvl.cols; c++) {
+      state.grid.push(lvl.grid[r][c]);
+      state.filled.push(false);
+      state.cellPiece.push(null);
+    }
+  for (const z of Object.keys(ZONE_COLORS)) {
+    const count = state.grid.filter(x => x === z).length;
+    if (count > 0) state.zoneAreas[z] = count;
+  }
+  showView('game');
+  resetZoom();
+  updateInstruction('<strong>Drag</strong> a piece onto its colored zone — or tap to select, then tap the board.');
+  render();
+}
+
+/* ===================== pinch-zoom & two-finger pan ===================== */
+const Zoom = { scale: 1, x: 0, y: 0, pinching: false, startDist: 0, startScale: 1, startMidX: 0, startMidY: 0, startX: 0, startY: 0 };
+function applyZoom() {
+  const board = document.getElementById('board');
+  if (board) board.style.transform = `translate(${Zoom.x}px, ${Zoom.y}px) scale(${Zoom.scale})`;
+}
+function resetZoom() { Zoom.scale = 1; Zoom.x = 0; Zoom.y = 0; Zoom.pinching = false; applyZoom(); }
+function clampPan() {
+  const board = document.getElementById('board');
+  const w = board ? board.offsetWidth : 0, h = board ? board.offsetHeight : 0;
+  const maxX = (w * (Zoom.scale - 1)) / 2 + 8;
+  const maxY = (h * (Zoom.scale - 1)) / 2 + 8;
+  Zoom.x = Math.max(-maxX, Math.min(maxX, Zoom.x));
+  Zoom.y = Math.max(-maxY, Math.min(maxY, Zoom.y));
+}
+(function setupZoom() {
+  const bc = document.getElementById('board-container');
+  if (!bc) return;
+  const dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  bc.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      DragCtl.cancel();
+      const [a, b] = e.touches;
+      Zoom.pinching = true;
+      Zoom.startDist = dist(a, b) || 1;
+      Zoom.startScale = Zoom.scale;
+      Zoom.startMidX = (a.clientX + b.clientX) / 2;
+      Zoom.startMidY = (a.clientY + b.clientY) / 2;
+      Zoom.startX = Zoom.x; Zoom.startY = Zoom.y;
+      e.preventDefault();
+    }
+  }, { passive: false });
+  bc.addEventListener('touchmove', (e) => {
+    if (Zoom.pinching && e.touches.length === 2) {
+      const [a, b] = e.touches;
+      Zoom.scale = Math.max(1, Math.min(4, Zoom.startScale * (dist(a, b) / Zoom.startDist)));
+      const midX = (a.clientX + b.clientX) / 2, midY = (a.clientY + b.clientY) / 2;
+      Zoom.x = Zoom.startX + (midX - Zoom.startMidX);
+      Zoom.y = Zoom.startY + (midY - Zoom.startMidY);
+      clampPan();
+      applyZoom();
+      e.preventDefault();
+    }
+  }, { passive: false });
+  const endPinch = (e) => {
+    if (e.touches.length < 2) {
+      Zoom.pinching = false;
+      if (Zoom.scale <= 1.02) resetZoom();
+    }
+  };
+  bc.addEventListener('touchend', endPinch);
+  bc.addEventListener('touchcancel', endPinch);
+})();
+
+function render() { renderBoard(); renderQueue(); renderStatus(); renderProgress(); renderActions(); }
+
+function renderBoard() {
+  const lvl = state.level;
+  const board = document.getElementById('board');
+  // Scale cell size to fit BOTH the phone width and a height budget (some
+  // boards are shaped/tall), so the whole board is always visible.
+  const GAP = 3, PAD = 8;
+  const availW = Math.min(window.innerWidth, 420) - 32;
+  const availH = Math.max(220, window.innerHeight - 380); // reserve room for the rest of the UI
+  const sizeW = (availW - 2 * PAD - (lvl.cols - 1) * GAP) / lvl.cols;
+  const sizeH = (availH - 2 * PAD - (lvl.rows - 1) * GAP) / lvl.rows;
+  let size = Math.floor(Math.min(sizeW, sizeH));
+  size = Math.max(30, Math.min(56, size));
+  state.cellSize = size;
+  // Shaped (non-rectangular) boards drop the framed background so only the
+  // shape's cells show on the page — no leftover empty rectangle.
+  board.classList.toggle('shaped', state.grid.some(z => z === null));
+  board.style.gridTemplateColumns = `repeat(${lvl.cols}, ${size}px)`;
+  board.style.gridTemplateRows = `repeat(${lvl.rows}, ${size}px)`;
+  board.innerHTML = '';
+  for (let r = 0; r < lvl.rows; r++) {
+    for (let c = 0; c < lvl.cols; c++) {
+      const idx = r * lvl.cols + c;
+      const zone = state.grid[idx];
+      const isFilled = state.filled[idx];
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.style.width = size + 'px';
+      cell.style.height = size + 'px';
+      cell.dataset.idx = idx;
+      if (zone) {
+        cell.dataset.zone = zone;
+        if (isFilled) {
+          cell.classList.add('filled');
+          if (state.cellPiece[idx] !== null && state.cellPiece[idx] !== undefined) {
+            cell.classList.add('placed');
+            cell.dataset.piece = state.cellPiece[idx];
+          }
+        } else {
+          cell.classList.add('droppable');
+        }
+      } else {
+        cell.classList.add('void'); // outside the board shape — invisible spacer
+      }
+      cell.addEventListener('pointerdown', (e) => DragCtl.onCellPointerDown(e, idx));
+      board.appendChild(cell);
+    }
+  }
+  // clip the container to the board's natural size so pinch-zoom scales/pans
+  // within a fixed window instead of overlapping the rest of the UI
+  const bc = document.getElementById('board-container');
+  bc.style.height = board.offsetHeight + 'px';
+  applyZoom();
+}
+
+function renderQueue() {
+  const queue = document.getElementById('queue');
+  queue.innerHTML = '';
+  if (state.usedPieces.length === state.pieceBank.length) {
+    queue.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:13px;padding:20px 0">All pieces placed!</div>';
+    return;
+  }
+  // Show ALL pieces up front (so the level is always solvable / plannable).
+  // Placed pieces stay in place but greyed out — nothing ever shifts.
+  state.pieceBank.forEach((p, pieceIdx) => {
+    const used = state.usedPieces.includes(pieceIdx);
+    const card = document.createElement('div');
+    card.className = 'piece-card' + (state.selectedPieceIdx === pieceIdx ? ' selected' : '') + (used ? ' used' : '');
+    const dot = document.createElement('div');
+    dot.className = 'piece-zone-dot';
+    dot.style.background = getComputedStyle(document.documentElement).getPropertyValue(`--zone-${p.zone}`).trim();
+    const pg = document.createElement('div');
+    pg.className = 'piece-grid';
+    pg.style.gridTemplateColumns = `repeat(${p.shape[0].length}, 16px)`;
+    pg.style.gridTemplateRows = `repeat(${p.shape.length}, 16px)`;
+    p.shape.forEach(row => row.forEach(on => {
+      const pc = document.createElement('div');
+      pc.className = 'piece-cell ' + (on ? 'on-' + p.zone : 'empty');
+      pg.appendChild(pc);
+    }));
+    card.append(dot, pg);
+    card.dataset.piece = pieceIdx;
+    if (!used) card.addEventListener('pointerdown', (e) => DragCtl.onQueuePointerDown(e, pieceIdx));
+    queue.appendChild(card);
+  });
+}
+
+function renderStatus() {
+  document.getElementById('moves-count').textContent = state.moves;
+  document.getElementById('level-badge').textContent = state.isDaily ? 'DAILY QUILT' : `LEVEL ${state.levelIdx + 1}`;
+  document.getElementById('zones-done').textContent = state.zonesDone.size;
+  document.getElementById('zones-total').textContent = Object.keys(state.zoneAreas).length;
+  const heartsEl = document.getElementById('hearts');
+  heartsEl.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const h = document.createElement('div');
+    h.className = 'heart' + (i >= state.hearts ? ' lost' : '');
+    h.innerHTML = `<svg viewBox="0 0 20 18" fill="none"><path class="fill" d="M10 16.5C10 16.5 1 11 1 5.5C1 3 3 1 5.5 1C7.3 1 8.9 2.1 10 3.5C11.1 2.1 12.7 1 14.5 1C17 1 19 3 19 5.5C19 11 10 16.5 10 16.5Z"/></svg>`;
+    heartsEl.appendChild(h);
+  }
+}
+
+function renderProgress() {
+  const dots = document.getElementById('progress-dots');
+  dots.innerHTML = '';
+  if (state.isDaily) return;
+  // Per-level dots are clean for a small set; for a large level list show a
+  // compact progress bar instead so the header doesn't overflow.
+  if (LEVELS.length <= 24) {
+    LEVELS.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i < state.levelIdx ? ' done' : i === state.levelIdx ? ' current' : '');
+      dots.appendChild(d);
+    });
+  } else {
+    const bar = document.createElement('div');
+    bar.className = 'progress-bar';
+    const fill = document.createElement('div');
+    fill.className = 'progress-bar-fill';
+    fill.style.width = ((state.levelIdx + 1) / LEVELS.length * 100) + '%';
+    bar.appendChild(fill);
+    dots.appendChild(bar);
+  }
+}
+
+function onPieceSelect(pieceIdx) {
+  if (state.usedPieces.includes(pieceIdx)) return;
+  state.selectedPieceIdx = pieceIdx === state.selectedPieceIdx ? null : pieceIdx;
+  renderQueue();
+  if (state.selectedPieceIdx !== null) {
+    const p = state.pieceBank[state.selectedPieceIdx];
+    updateInstruction(`<strong>${ZONE_COLORS[p.zone].name}</strong> piece selected — tap its zone on the board.`);
+  } else {
+    updateInstruction('Select a piece below, then tap a <strong>colored zone</strong> on the board.');
+  }
+}
+
+// Tap-to-place: select a piece, then tap a target cell (kept alongside drag).
+function onCellClick(cellIdx) {
+  if (state.selectedPieceIdx === null) { updateInstruction('Pick a piece, or drag one onto the board.'); return; }
+  const piece = state.pieceBank[state.selectedPieceIdx];
+  const cellZone = state.grid[cellIdx];
+  if (!cellZone) { updateInstruction('Tap inside a colored zone.'); return; }
+  if (cellZone !== piece.zone) { shakeCell(cellIdx); loseHeart(); return; }
+  if (state.zonesDone.has(cellZone)) return;
+  const placement = tryPlace(piece, cellIdx, cellZone);
+  if (!placement) { shakeCell(cellIdx); loseHeart(); return; }
+  commitPlacement(state.selectedPieceIdx, placement, { snapshot: true, charge: true });
+}
+
+// Full state snapshot for undo / reposition rollback.
+function makeSnapshot() {
+  return {
+    filled: [...state.filled],
+    cellPiece: [...state.cellPiece],
+    placedCells: JSON.parse(JSON.stringify(state.placedCells)),
+    usedPieces: [...state.usedPieces],
+    moves: state.moves,
+    hearts: state.hearts,
+    zonesDone: new Set(state.zonesDone),
+    selectedPieceIdx: state.selectedPieceIdx,
+  };
+}
+
+// Place a piece onto an exact set of cells (used by tap AND drag).
+function commitPlacement(pieceIdx, cells, opts) {
+  opts = opts || {};
+  if (opts.snapshot) state.history.push(makeSnapshot());
+  const zone = state.pieceBank[pieceIdx].zone;
+  cells.forEach(i => { state.filled[i] = true; state.cellPiece[i] = pieceIdx; });
+  state.placedCells[pieceIdx] = cells.slice();
+  if (!state.usedPieces.includes(pieceIdx)) state.usedPieces.push(pieceIdx);
+  if (opts.charge) state.moves = Math.max(0, state.moves - 1);
+  state.selectedPieceIdx = null;
+  const wasDone = state.zonesDone.has(zone);
+  const zoneComplete = state.grid.every((z, i) => z !== zone || state.filled[i]);
+  if (zoneComplete && !wasDone) {
+    state.zonesDone.add(zone);
+    animateZoneComplete(zone);
+    updateInstruction(`✨ <strong>${ZONE_COLORS[zone].name}</strong> zone complete!`);
+  } else if (!zoneComplete) {
+    const rem = state.grid.filter((z, i) => z === zone && !state.filled[i]).length;
+    updateInstruction(`${rem} cell${rem !== 1 ? 's' : ''} left in <strong>${ZONE_COLORS[zone].name}</strong>.`);
+  }
+  render();
+  if (checkWin()) return;
+  if (state.moves === 0) { setTimeout(() => showFail('moves'), 500); return; }
+  const stuck = findStuckPiece();
+  if (stuck !== -1) {
+    state.stuckZone = ZONE_COLORS[state.pieceBank[stuck].zone].name;
+    setTimeout(() => showFail('stuck'), 450);
+  }
+}
+
+function animateZoneComplete(zone) {
+  const board = document.getElementById('board');
+  [...board.querySelectorAll(`[data-zone="${zone}"]`)].forEach((el, i) =>
+    setTimeout(() => { el.classList.add('stitch-pop'); setTimeout(() => el.classList.remove('stitch-pop'), 400); }, i * 40));
+}
+
+// Lift a placed piece off the board to reposition it (it stays "in hand" as the
+// drag ghost and is re-placed on drop, so it doesn't return to the tray).
+function liftPiece(pieceIdx) {
+  state.history.push(makeSnapshot());
+  const cells = (state.placedCells[pieceIdx] || []).slice();
+  cells.forEach(i => { state.filled[i] = false; state.cellPiece[i] = null; });
+  delete state.placedCells[pieceIdx];
+  state.usedPieces = state.usedPieces.filter(i => i !== pieceIdx);
+  state.zonesDone.delete(state.pieceBank[pieceIdx].zone);
+  return cells;
+}
+
+// Recall power-up: send an already-placed piece back to the tray (un-uses it,
+// so its card un-greys in place).
+function sendBackPiece(pieceIdx) {
+  state.history.push(makeSnapshot());
+  const cells = (state.placedCells[pieceIdx] || []).slice();
+  cells.forEach(i => { state.filled[i] = false; state.cellPiece[i] = null; });
+  delete state.placedCells[pieceIdx];
+  state.usedPieces = state.usedPieces.filter(i => i !== pieceIdx);
+  state.zonesDone.delete(state.pieceBank[pieceIdx].zone);
+}
+
+// Where would a piece land if its grabbed cell (anchor [gr,gc]) sits on hoverIdx?
+function cellsForDrag(hoverIdx, shapeCells, zone, anchor) {
+  const { cols, rows } = state.level;
+  const gr = anchor ? anchor[0] : 0, gc = anchor ? anchor[1] : 0;
+  const hr = Math.floor(hoverIdx / cols), hc = hoverIdx % cols;
+  const out = [];
+  for (const [r, c] of shapeCells) {
+    const rr = hr + (r - gr), cc = hc + (c - gc);
+    if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) return null;
+    const i = rr * cols + cc;
+    if (state.grid[i] !== zone || state.filled[i]) return null;
+    out.push(i);
+  }
+  return out;
+}
+
+// Which occupied piece-cell did the pointer grab (for grab-relative dragging)?
+function grabCellFromGrid(e, pieceIdx, gridEl) {
+  const shape = state.pieceBank[pieceIdx].shape;
+  const occ = [];
+  shape.forEach((row, r) => row.forEach((on, c) => { if (on) occ.push([r, c]); }));
+  if (!gridEl) return occ[0];
+  const rect = gridEl.getBoundingClientRect();
+  const gc = Math.floor((e.clientX - rect.left) / (rect.width / shape[0].length));
+  const gr = Math.floor((e.clientY - rect.top) / (rect.height / shape.length));
+  let best = occ[0], bd = Infinity;
+  for (const [r, c] of occ) { const d = (r - gr) ** 2 + (c - gc) ** 2; if (d < bd) { bd = d; best = [r, c]; } }
+  return best;
+}
+
+/* ===================== drag controller ===================== */
+const DragCtl = {
+  pending: null,
+  active: null,
+
+  shapeCellsOf(pieceIdx) {
+    const out = [];
+    state.pieceBank[pieceIdx].shape.forEach((row, r) =>
+      row.forEach((on, c) => { if (on) out.push([r, c]); }));
+    return out;
+  },
+
+  onQueuePointerDown(e, pieceIdx) {
+    if (this.active) return;
+    if (state.usedPieces.includes(pieceIdx)) return;
+    e.preventDefault();
+    const grid = e.currentTarget.querySelector('.piece-grid');
+    const grab = grabCellFromGrid(e, pieceIdx, grid);
+    this.pending = { type: 'queue', pieceIdx, grab, x: e.clientX, y: e.clientY };
+  },
+
+  onCellPointerDown(e, cellIdx) {
+    if (this.active) return;
+    const pieceIdx = state.cellPiece[cellIdx];
+    if (pieceIdx !== null && pieceIdx !== undefined) {
+      e.preventDefault();
+      // grab offset within the piece, so reposition stays relative to the grab
+      const cols = state.level.cols;
+      const cells = state.placedCells[pieceIdx] || [cellIdx];
+      const minR = Math.min(...cells.map(i => Math.floor(i / cols)));
+      const minC = Math.min(...cells.map(i => i % cols));
+      const grab = [Math.floor(cellIdx / cols) - minR, (cellIdx % cols) - minC];
+      // recall mode: a tap sends the piece back. otherwise: drag to reposition.
+      this.pending = { type: state.recallMode ? 'recall' : 'placed', pieceIdx, grab, x: e.clientX, y: e.clientY };
+    } else {
+      this.pending = { type: 'empty', cellIdx, x: e.clientX, y: e.clientY };
+    }
+  },
+
+  onMove(e) {
+    if (this.active) { this.updateDrag(e); return; }
+    if (!this.pending) return;
+    const dx = e.clientX - this.pending.x, dy = e.clientY - this.pending.y;
+    if (dx * dx + dy * dy < 64) return; // ~8px threshold before it counts as a drag
+    // queue pieces and placed pieces can be dragged; empty/recall are taps only
+    if (this.pending.type === 'queue' || this.pending.type === 'placed') this.beginDrag(e);
+    else this.pending = null;
+  },
+
+  beginDrag(e) {
+    const p = this.pending;
+    const pieceIdx = p.pieceIdx;
+    let origin = null;
+    if (p.type === 'placed') { origin = liftPiece(pieceIdx); render(); }
+    this.active = {
+      pieceIdx,
+      zone: state.pieceBank[pieceIdx].zone,
+      shapeCells: this.shapeCellsOf(pieceIdx),
+      ghost: this.makeGhost(pieceIdx),
+      grab: p.grab || [0, 0],
+      origin,
+      lastTargets: null,
+      lastHover: null,
+    };
+    document.body.appendChild(this.active.ghost);
+    if (p.type === 'queue') {
+      const card = document.querySelector(`.piece-card[data-piece="${pieceIdx}"]`);
+      if (card) card.classList.add('dragging');
+    }
+    this.pending = null;
+    updateInstruction(p.type === 'placed'
+      ? 'Drop on a new spot, or drop outside the zone to leave it.'
+      : 'Drop the piece inside its matching colored zone.');
+    this.updateDrag(e);
+  },
+
+  makeGhost(pieceIdx) {
+    const p = state.pieceBank[pieceIdx];
+    const sz = state.cellSize || 50;
+    const g = document.createElement('div');
+    g.className = 'drag-ghost';
+    g.style.gridTemplateColumns = `repeat(${p.shape[0].length}, ${sz}px)`;
+    g.style.gridTemplateRows = `repeat(${p.shape.length}, ${sz}px)`;
+    p.shape.forEach(row => row.forEach(on => {
+      const c = document.createElement('div');
+      c.className = 'gcell ' + (on ? 'on-' + p.zone : 'empty');
+      c.style.width = sz + 'px';
+      c.style.height = sz + 'px';
+      g.appendChild(c);
+    }));
+    return g;
+  },
+
+  updateDrag(e) {
+    const a = this.active;
+    // position the ghost so the grabbed cell stays under the pointer (drag is
+    // relative to where you grabbed the piece, not its center).
+    const sz = state.cellSize || 50, GAP = 3;
+    const gx = a.grab[1] * (sz + GAP) + sz / 2;
+    const gy = a.grab[0] * (sz + GAP) + sz / 2;
+    a.ghost.style.transform = `translate(${e.clientX - gx}px, ${e.clientY - gy}px)`;
+    this.clearPreview();
+    const hoverIdx = this.hoverCell(e);
+    a.lastHover = hoverIdx;
+    const board = document.getElementById('board');
+    if (hoverIdx === null) { a.lastTargets = null; return; }
+    const targets = cellsForDrag(hoverIdx, a.shapeCells, a.zone, a.grab);
+    if (targets) {
+      a.lastTargets = targets;
+      targets.forEach(i => {
+        const el = board.querySelector(`[data-idx="${i}"]`);
+        if (el) el.classList.add('preview', 'preview-valid');
+      });
+    } else {
+      a.lastTargets = null;
+      const el = board.querySelector(`[data-idx="${hoverIdx}"]`);
+      if (el) el.classList.add('preview', 'preview-invalid');
+    }
+  },
+
+  hoverCell(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || !el.closest) return null;
+    const cell = el.closest('.cell');
+    if (!cell) return null;
+    const idx = parseInt(cell.dataset.idx, 10);
+    return Number.isNaN(idx) ? null : idx;
+  },
+
+  onUp(e) {
+    if (this.active) { this.endDrag(e); return; }
+    if (this.pending) {
+      if (this.pending.type === 'empty') onCellClick(this.pending.cellIdx);
+      else if (this.pending.type === 'queue') onPieceSelect(this.pending.pieceIdx);
+      else if (this.pending.type === 'recall') doRecall(this.pending.pieceIdx);
+    }
+    this.pending = null;
+  },
+
+  endDrag() {
+    const a = this.active;
+    this.active = null;
+    this.clearPreview();
+    if (a.ghost && a.ghost.parentNode) a.ghost.parentNode.removeChild(a.ghost);
+    const card = document.querySelector('.piece-card.dragging');
+    if (card) card.classList.remove('dragging');
+
+    if (a.lastTargets) {
+      // queue placement snapshots + charges a move; a reposition was already
+      // snapshotted at lift and shouldn't cost another move
+      commitPlacement(a.pieceIdx, a.lastTargets, { snapshot: a.origin === null, charge: a.origin === null });
+    } else if (a.origin) {
+      // invalid drop of a lifted piece -> snap it back silently (no penalty)
+      commitPlacement(a.pieceIdx, a.origin, { snapshot: false, charge: false });
+      state.history.pop();
+      render();
+    } else if (a.lastHover !== null && a.lastHover !== undefined) {
+      // wrong drop onto the board (from the tray): shake + lose a life, no popup
+      shakeCell(a.lastHover);
+      loseHeart();
+    }
+  },
+
+  clearPreview() {
+    document.querySelectorAll('.cell.preview').forEach(el =>
+      el.classList.remove('preview', 'preview-valid', 'preview-invalid'));
+  },
+
+  // Abort any in-progress drag/pending (e.g. when a two-finger pinch starts).
+  cancel() {
+    if (this.active) {
+      const a = this.active;
+      this.active = null;
+      this.clearPreview();
+      if (a.ghost && a.ghost.parentNode) a.ghost.parentNode.removeChild(a.ghost);
+      const card = document.querySelector('.piece-card.dragging');
+      if (card) card.classList.remove('dragging');
+      if (a.origin) { commitPlacement(a.pieceIdx, a.origin, { snapshot: false, charge: false }); state.history.pop(); render(); }
+    }
+    this.pending = null;
+  },
+};
+
+// Recall power-up: tap a placed piece (while recall mode is on) to send it back.
+function doRecall(pieceIdx) {
+  if (state.recallsLeft <= 0) { state.recallMode = false; render(); return; }
+  sendBackPiece(pieceIdx);
+  state.recallsLeft--;
+  state.recallMode = false;
+  document.body.classList.remove('recall-mode');
+  render();
+  updateInstruction(`Sent the <strong>${ZONE_COLORS[state.pieceBank[pieceIdx].zone].name}</strong> piece back to the tray.`);
+}
+
+window.addEventListener('pointermove', (e) => DragCtl.onMove(e), { passive: false });
+window.addEventListener('pointerup', (e) => DragCtl.onUp(e));
+window.addEventListener('pointercancel', () => {
+  const a = DragCtl.active;
+  if (a) {
+    DragCtl.active = null;
+    DragCtl.clearPreview();
+    if (a.ghost && a.ghost.parentNode) a.ghost.parentNode.removeChild(a.ghost);
+    if (a.origin) { commitPlacement(a.pieceIdx, a.origin, { snapshot: false, charge: false }); state.history.pop(); render(); }
+  }
+  DragCtl.pending = null;
+});
+
+// Re-fit the board on viewport changes (rotation, resize).
+window.addEventListener('resize', () => {
+  if (state.level && document.getElementById('game-view').classList.contains('active')) renderBoard();
+});
+
+function shakeCell(cellIdx) {
+  const el = document.getElementById('board').querySelector(`[data-idx="${cellIdx}"]`);
+  if (el) { el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 350); }
+}
+
+function tryPlace(piece, clickedIdx, zone) {
+  const { cols, rows } = state.level;
+  const clickedRow = Math.floor(clickedIdx / cols);
+  const clickedCol = clickedIdx % cols;
+  const shapeCells = [];
+  piece.shape.forEach((row, r) => row.forEach((on, c) => { if (on) shapeCells.push([r, c]); }));
+  for (const [sr, sc] of shapeCells) {
+    const positions = shapeCells.map(([r, c]) => [clickedRow - sr + r, clickedCol - sc + c]);
+    const valid = positions.every(([r, c]) => {
+      if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
+      const i = r * cols + c;
+      return state.grid[i] === zone && !state.filled[i];
+    });
+    if (valid) return positions.map(([r, c]) => r * cols + c);
+  }
+  return null;
+}
+
+function loseHeart() {
+  if (state.hearts > 0) { state.hearts--; renderStatus(); if (state.hearts === 0) setTimeout(() => showFail('hearts'), 600); }
+}
+
+// Can this still-unplaced piece be placed anywhere on the board right now?
+function hasAnyPlacement(pieceIdx) {
+  const piece = state.pieceBank[pieceIdx];
+  for (let i = 0; i < state.grid.length; i++) {
+    if (state.grid[i] !== piece.zone || state.filled[i]) continue;
+    if (tryPlace(piece, i, piece.zone)) return true;
+  }
+  return false;
+}
+
+// Returns a stuck (unplaceable) unplaced piece index, or -1. A dead end: with
+// fixed pieces, if any remaining piece can't fit anywhere the level is unwinnable.
+function findStuckPiece() {
+  for (let i = 0; i < state.pieceBank.length; i++) {
+    if (state.usedPieces.includes(i)) continue;
+    if (!hasAnyPlacement(i)) return i;
+  }
+  return -1;
+}
+
+function checkWin() {
+  const allDone = Object.keys(state.zoneAreas).every(z => state.zonesDone.has(z));
+  if (allDone) { setTimeout(() => showWin(), 600); return true; }
+  return false;
+}
+
+function showWin() {
+  const ratio = state.moves / state.level.moves;
+  const stars = ratio > 0.5 ? 3 : ratio > 0.2 ? 2 : 1;
+
+  if (state.isDaily) {
+    LS.setDailyDone(todayKey());
+  } else {
+    LS.setStar(state.levelIdx, stars);
+    if (state.levelIdx + 1 >= LS.getProgress() && state.levelIdx + 1 < LEVELS.length) {
+      LS.setProgress(state.levelIdx + 2);
+    } else if (state.levelIdx + 1 >= LEVELS.length) {
+      LS.setProgress(LEVELS.length);
+    }
+  }
+
+  const overlay = document.getElementById('win-overlay');
+  overlay.querySelectorAll('.star').forEach((s, i) => {
+    s.classList.remove('lit');
+    if (i < stars) setTimeout(() => s.classList.add('lit'), i * 200 + 300);
+  });
+  document.getElementById('win-title').textContent =
+    stars === 3 ? 'Perfect stitch!' : stars === 2 ? 'Quilt complete!' : 'Level done!';
+  document.getElementById('win-sub').textContent =
+    state.isDaily ? "Today's quilt is finished." : `${state.moves} move${state.moves !== 1 ? 's' : ''} to spare.`;
+  const showNext = !state.isDaily && state.levelIdx < LEVELS.length - 1;
+  document.getElementById('next-btn').style.display = showNext ? '' : 'none';
+  overlay.classList.add('show');
+}
+
+function showFail(reason) {
+  // cancel an in-progress recall so the modal isn't left half-armed
+  state.recallMode = false;
+  document.body.classList.remove('recall-mode');
+  let title = 'Out of moves';
+  let sub = 'Plan placements so pieces fill each zone exactly.';
+  if (reason === 'hearts') { title = 'Out of hearts'; sub = 'Tap only inside the matching zone — wrong taps cost a heart.'; }
+  else if (reason === 'stuck') {
+    title = 'No valid moves';
+    sub = `The <strong>${state.stuckZone || ''}</strong> piece no longer fits anywhere. Undo or restart to recover.`;
+  }
+  document.getElementById('fail-title').textContent = title;
+  document.getElementById('fail-sub').innerHTML = sub;
+  // offer an undo escape hatch on a dead end if undos remain
+  const undoBtn = document.getElementById('fail-undo-btn');
+  undoBtn.style.display = (reason === 'stuck' && state.undosLeft > 0) ? '' : 'none';
+  document.getElementById('fail-overlay').classList.add('show');
+}
+
+function giveHint() {
+  if (state.hintsLeft <= 0) { updateInstruction('No hints left this level.'); return; }
+  if (state.moves <= 0) return;
+  const zones = Object.keys(state.zoneAreas).filter(z => !state.zonesDone.has(z));
+  for (const zone of zones) {
+    const avail = state.pieceBank.map((p, i) => ({ p, i })).filter(({ p, i }) => p.zone === zone && !state.usedPieces.includes(i));
+    if (!avail.length) continue;
+    const { p, i } = avail[0];
+    const cells = state.grid.map((z, idx) => ({ z, idx })).filter(({ z, idx }) => z === zone && !state.filled[idx]);
+    for (const { idx } of cells) {
+      const placement = tryPlace(p, idx, zone);
+      if (placement) {
+        state.selectedPieceIdx = i;
+        state.moves = Math.max(0, state.moves - 1);
+        state.hintsLeft--;
+        renderQueue(); renderStatus(); renderActions();
+        const board = document.getElementById('board');
+        placement.forEach(ci => {
+          const el = board.querySelector(`[data-idx="${ci}"]`);
+          if (el) { el.classList.add('preview'); setTimeout(() => el.classList.remove('preview'), 1200); }
+        });
+        updateInstruction(`💡 Place the <strong>${ZONE_COLORS[zone].name}</strong> piece at the highlighted cells.`);
+        return;
+      }
+    }
+  }
+  updateInstruction('No hint available right now.');
+}
+
+function undo() {
+  if (!state.history.length) { updateInstruction('Nothing to undo.'); return; }
+  if (state.undosLeft <= 0) { updateInstruction('No undos left this level.'); return; }
+  const prev = state.history.pop();
+  // counters (undos/hints/recalls) live outside the snapshot, so they persist
+  Object.assign(state, { ...prev, selectedPieceIdx: null });
+  state.undosLeft--;
+  state.recallMode = false;
+  document.body.classList.remove('recall-mode');
+  render();
+  updateInstruction('Undone. Drag a piece to continue.');
+}
+
+// Recall power-up: arm it, then tap a placed piece to send it back to the tray.
+function toggleRecall() {
+  if (state.recallsLeft <= 0) { updateInstruction('No recalls left this level.'); return; }
+  if (Object.keys(state.placedCells).length === 0) { updateInstruction('Nothing on the board to recall yet.'); return; }
+  state.recallMode = !state.recallMode;
+  document.body.classList.toggle('recall-mode', state.recallMode);
+  renderActions();
+  updateInstruction(state.recallMode
+    ? '♻ Tap a placed piece to send it back to the tray.'
+    : 'Recall cancelled.');
+}
+
+// Update action-bar buttons (counts, disabled, active state).
+function renderActions() {
+  const hint = document.getElementById('hint-btn');
+  const undoBtn = document.getElementById('undo-btn');
+  const recall = document.getElementById('recall-btn');
+  hint.innerHTML = `💡 Hint <span class="count">${state.hintsLeft}</span>`;
+  hint.disabled = state.hintsLeft <= 0;
+  undoBtn.innerHTML = `↩ Undo <span class="count">${state.undosLeft}</span>`;
+  undoBtn.disabled = state.undosLeft <= 0 || state.history.length === 0;
+  recall.innerHTML = `♻ Recall <span class="count">${state.recallsLeft}</span>`;
+  recall.disabled = state.recallsLeft <= 0;
+  recall.classList.toggle('active', !!state.recallMode);
+}
+
+function updateInstruction(html) { document.getElementById('instruction').innerHTML = html; }
+
+/* ===================== home / level select rendering ===================== */
+function renderHome() {
+  const progress = Math.min(LS.getProgress(), LEVELS.length);
+  const nextLevel = progress; // 1-based index of the level to play next
+  const completed = Math.min(LS.getProgress() - 1, LEVELS.length);
+  document.getElementById('home-level-title').textContent = `Level ${nextLevel}`;
+  document.getElementById('home-level-sub').textContent = `${completed} / ${LEVELS.length} levels complete`;
+  document.getElementById('home-daily-sub').textContent = `📅 ${todayLabel()}`;
+  const dailyDone = LS.isDailyDone(todayKey());
+  document.getElementById('home-daily-status').outerHTML = dailyDone
+    ? '<div id="home-daily-status" class="daily-check">✓</div>'
+    : '<div id="home-daily-status" class="home-card-icon">🧵</div>';
+}
+
+function renderLevelSelect() {
+  const grid = document.getElementById('levels-grid');
+  const progress = LS.getProgress();
+  const stars = LS.getStars();
+  grid.innerHTML = '';
+  LEVELS.forEach((_, i) => {
+    const levelNum = i + 1;
+    const unlocked = DEV_UNLOCK_ALL || levelNum <= progress;
+    const starCount = stars[i] || 0;
+    const tile = document.createElement('div');
+    tile.className = 'level-tile' + (!unlocked ? ' locked' : '') + (starCount > 0 ? ' done' : '');
+    if (unlocked) {
+      const starStr = '★'.repeat(starCount) + '☆'.repeat(3 - starCount);
+      tile.innerHTML = `<div class="level-tile-num">${levelNum}</div><div class="level-tile-stars">${starCount ? starStr : ''}</div>`;
+      tile.addEventListener('click', () => loadLevel(i));
+    } else {
+      tile.innerHTML = `<div class="level-tile-lock">🔒</div>`;
+    }
+    grid.appendChild(tile);
+  });
+}
+
+function goHome() {
+  renderHome();
+  showView('home');
+}
+
+/* ===================== wiring ===================== */
+// game actions
+document.getElementById('hint-btn').addEventListener('click', giveHint);
+document.getElementById('undo-btn').addEventListener('click', undo);
+document.getElementById('recall-btn').addEventListener('click', toggleRecall);
+document.getElementById('restart-btn').addEventListener('click', () => loadLevel(state.levelIdx, { daily: state.isDaily }));
+
+// win modal
+document.getElementById('next-btn').addEventListener('click', () => {
+  document.getElementById('win-overlay').classList.remove('show');
+  loadLevel(state.levelIdx + 1);
+});
+document.getElementById('replay-btn').addEventListener('click', () => {
+  document.getElementById('win-overlay').classList.remove('show');
+  loadLevel(state.levelIdx, { daily: state.isDaily });
+});
+document.getElementById('win-home-btn').addEventListener('click', () => {
+  document.getElementById('win-overlay').classList.remove('show');
+  goHome();
+});
+
+// fail modal
+document.getElementById('retry-btn').addEventListener('click', () => {
+  document.getElementById('fail-overlay').classList.remove('show');
+  loadLevel(state.levelIdx, { daily: state.isDaily });
+});
+document.getElementById('fail-home-btn').addEventListener('click', () => {
+  document.getElementById('fail-overlay').classList.remove('show');
+  goHome();
+});
+document.getElementById('fail-undo-btn').addEventListener('click', () => {
+  document.getElementById('fail-overlay').classList.remove('show');
+  undo();
+});
+
+// intro modal
+document.getElementById('start-btn').addEventListener('click', () => {
+  document.getElementById('intro-overlay').classList.remove('show');
+  LS.markIntro();
+});
+
+// game back + gear
+document.getElementById('game-back').addEventListener('click', goHome);
+document.getElementById('game-gear').addEventListener('click', openSettings);
+
+// home cards
+document.getElementById('home-level-card').addEventListener('click', () => {
+  if (homeHeldOpen) { homeHeldOpen = false; return; }
+  loadLevel(Math.min(LS.getProgress(), LEVELS.length) - 1);
+});
+document.getElementById('home-daily-card').addEventListener('click', () => {
+  loadLevel(dayOfYear() % DAILY_LEVELS.length, { daily: true });
+});
+document.getElementById('home-gear').addEventListener('click', openSettings);
+
+// long-press on level card -> level select
+let homePressTimer = null;
+let homeHeldOpen = false;
+const levelCard = document.getElementById('home-level-card');
+function startHomePress() {
+  homeHeldOpen = false;
+  homePressTimer = setTimeout(() => {
+    homeHeldOpen = true;
+    renderLevelSelect();
+    showView('levels');
+  }, 500);
+}
+function cancelHomePress() { if (homePressTimer) { clearTimeout(homePressTimer); homePressTimer = null; } }
+levelCard.addEventListener('pointerdown', startHomePress);
+levelCard.addEventListener('pointerup', cancelHomePress);
+levelCard.addEventListener('pointerleave', cancelHomePress);
+// also let the sub-label open the full grid directly
+document.getElementById('home-level-sub').addEventListener('click', (e) => {
+  e.stopPropagation();
+  homeHeldOpen = true;
+  renderLevelSelect();
+  showView('levels');
+});
+
+// level select nav
+document.getElementById('levels-back').addEventListener('click', goHome);
+document.getElementById('levels-gear').addEventListener('click', openSettings);
+
+/* ===================== settings ===================== */
+function openSettings() {
+  const t = document.getElementById('sound-toggle');
+  t.classList.toggle('on', LS.getSound());
+  document.getElementById('settings-overlay').classList.add('show');
+}
+document.getElementById('settings-close').addEventListener('click', () => {
+  document.getElementById('settings-overlay').classList.remove('show');
+});
+document.getElementById('sound-toggle').addEventListener('click', () => {
+  const on = !LS.getSound();
+  LS.setSound(on);
+  document.getElementById('sound-toggle').classList.toggle('on', on);
+});
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (confirm('Reset all progress? This clears stars, unlocked levels, and daily history.')) {
+    LS.reset();
+    document.getElementById('settings-overlay').classList.remove('show');
+    goHome();
+  }
+});
+
+/* ===================== boot ===================== */
+function boot() {
+  goHome();
+  if (!LS.introSeen()) {
+    document.getElementById('intro-overlay').classList.add('show');
+  }
+}
+boot();
+</script>
+</body>
+</html>
