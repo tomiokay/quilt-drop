@@ -380,9 +380,16 @@
     25%     { transform: translateX(-4px); }
     75%     { transform: translateX(4px); }
   }
+  @keyframes bobFloat {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-4px); }
+  }
   @media (prefers-reduced-motion: no-preference) {
     .cell.stitch-pop { animation: stitchPop 0.35s ease-out forwards; }
     .cell.shake { animation: shake 0.3s ease; }
+    .piece-card:not(.used):not(.selected):not(.dragging) { animation: bobFloat 2.8s ease-in-out infinite; }
+    .piece-card:nth-child(3n+2):not(.used):not(.selected):not(.dragging) { animation-delay: 0.9s; }
+    .piece-card:nth-child(3n+3):not(.used):not(.selected):not(.dragging) { animation-delay: 1.8s; }
   }
 
   .queue-section { width: 100%; flex-shrink: 0; }
@@ -987,19 +994,16 @@ function renderBoard() {
   applyZoom();
 }
 
-function renderQueue() {
+function buildQueue() {
   const queue = document.getElementById('queue');
   queue.innerHTML = '';
-  if (state.usedPieces.length === state.pieceBank.length) {
-    queue.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:13px;padding:20px 0">All pieces placed!</div>';
-    return;
-  }
-  // Show ALL pieces up front (so the level is always solvable / plannable).
-  // Placed pieces stay in place but greyed out — nothing ever shifts.
+  queue.dataset.built = String(state.levelIdx) + (state.isDaily ? 'd' : '');
+  // Show ALL pieces up front. Cards are built ONCE per level; later renders only
+  // toggle .used/.selected so ongoing bounce animations aren't reset (which
+  // looked like the whole tray jerking every time you placed a piece).
   state.pieceBank.forEach((p, pieceIdx) => {
-    const used = state.usedPieces.includes(pieceIdx);
     const card = document.createElement('div');
-    card.className = 'piece-card' + (state.selectedPieceIdx === pieceIdx ? ' selected' : '') + (used ? ' used' : '');
+    card.className = 'piece-card';
     const dot = document.createElement('div');
     dot.className = 'piece-zone-dot';
     dot.style.background = getComputedStyle(document.documentElement).getPropertyValue(`--zone-${p.zone}`).trim();
@@ -1014,8 +1018,23 @@ function renderQueue() {
     }));
     card.append(dot, pg);
     card.dataset.piece = pieceIdx;
-    if (!used) card.addEventListener('pointerdown', (e) => DragCtl.onQueuePointerDown(e, pieceIdx));
+    // listener always attached; it no-ops on used pieces (guard in the handler)
+    card.addEventListener('pointerdown', (e) => DragCtl.onQueuePointerDown(e, pieceIdx));
     queue.appendChild(card);
+  });
+}
+
+function renderQueue() {
+  const queue = document.getElementById('queue');
+  const key = String(state.levelIdx) + (state.isDaily ? 'd' : '');
+  if (queue.dataset.built !== key || queue.querySelectorAll('.piece-card').length !== state.pieceBank.length) {
+    buildQueue();
+  }
+  // update only the state classes on existing cards (keeps animations running)
+  queue.querySelectorAll('.piece-card').forEach(card => {
+    const idx = +card.dataset.piece;
+    card.classList.toggle('used', state.usedPieces.includes(idx));
+    card.classList.toggle('selected', state.selectedPieceIdx === idx);
   });
 }
 
@@ -1255,9 +1274,6 @@ const DragCtl = {
       if (card) card.classList.add('dragging');
     }
     this.pending = null;
-    updateInstruction(p.type === 'placed'
-      ? 'Drop on a new spot, or drop outside the zone to leave it.'
-      : 'Drop the piece inside its matching colored zone.');
     this.updateDrag(e);
   },
 
