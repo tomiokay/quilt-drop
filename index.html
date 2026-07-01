@@ -1138,11 +1138,7 @@ function commitPlacement(pieceIdx, cells, opts) {
   render();
   if (checkWin()) return;
   if (state.moves === 0) { setTimeout(() => showFail('moves'), 500); return; }
-  const stuck = findStuckPiece();
-  if (stuck !== -1) {
-    state.stuckZone = ZONE_COLORS[state.pieceBank[stuck].zone].name;
-    setTimeout(() => showFail('stuck'), 450);
-  }
+  // No dead-end detection — mistakes are fixed with Undo / Recall.
 }
 
 function animateZoneComplete(zone) {
@@ -1440,26 +1436,6 @@ function loseHeart() {
   if (state.hearts > 0) { state.hearts--; renderStatus(); if (state.hearts === 0) setTimeout(() => showFail('hearts'), 600); }
 }
 
-// Can this still-unplaced piece be placed anywhere on the board right now?
-function hasAnyPlacement(pieceIdx) {
-  const piece = state.pieceBank[pieceIdx];
-  for (let i = 0; i < state.grid.length; i++) {
-    if (state.grid[i] !== piece.zone || state.filled[i]) continue;
-    if (tryPlace(piece, i, piece.zone)) return true;
-  }
-  return false;
-}
-
-// Returns a stuck (unplaceable) unplaced piece index, or -1. A dead end: with
-// fixed pieces, if any remaining piece can't fit anywhere the level is unwinnable.
-function findStuckPiece() {
-  for (let i = 0; i < state.pieceBank.length; i++) {
-    if (state.usedPieces.includes(i)) continue;
-    if (!hasAnyPlacement(i)) return i;
-  }
-  return -1;
-}
-
 function checkWin() {
   const allDone = Object.keys(state.zoneAreas).every(z => state.zonesDone.has(z));
   if (allDone) { setTimeout(() => showWin(), 600); return true; }
@@ -1499,18 +1475,12 @@ function showFail(reason) {
   // cancel an in-progress recall so the modal isn't left half-armed
   state.recallMode = false;
   document.body.classList.remove('recall-mode');
-  let title = 'Out of moves';
-  let sub = 'Plan placements so pieces fill each zone exactly.';
-  if (reason === 'hearts') { title = 'Out of hearts'; sub = 'Tap only inside the matching zone — wrong taps cost a heart.'; }
-  else if (reason === 'stuck') {
-    title = 'No valid moves';
-    sub = `The <strong>${state.stuckZone || ''}</strong> piece no longer fits anywhere. Undo or restart to recover.`;
-  }
-  document.getElementById('fail-title').textContent = title;
-  document.getElementById('fail-sub').innerHTML = sub;
-  // offer an undo escape hatch on a dead end if undos remain
-  const undoBtn = document.getElementById('fail-undo-btn');
-  undoBtn.style.display = (reason === 'stuck' && state.undosLeft > 0) ? '' : 'none';
+  const hearts = reason === 'hearts';
+  document.getElementById('fail-title').textContent = hearts ? 'Out of hearts' : 'Out of moves';
+  document.getElementById('fail-sub').innerHTML = hearts
+    ? 'Tap only inside the matching zone — wrong taps cost a heart.'
+    : 'Plan placements so pieces fill each zone exactly.';
+  document.getElementById('fail-undo-btn').style.display = 'none';
   document.getElementById('fail-overlay').classList.add('show');
 }
 
